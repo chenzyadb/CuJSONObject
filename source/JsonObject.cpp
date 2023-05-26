@@ -1,12 +1,8 @@
 #include "JsonObject.h"
 
-JsonObject::JsonObject() 
-{
-	jsonMap_ = std::unordered_map<std::string, std::string>{};
-	jsonOrder_ = std::vector<std::string>{};
-}
+JsonObject::JsonObject() : jsonMap_(), jsonOrder_() { }
 
-JsonObject::JsonObject(const std::string &jsonText)
+JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 {
 	bool atJson = false;
 	bool atKey = false;
@@ -20,7 +16,7 @@ JsonObject::JsonObject(const std::string &jsonText)
 	std::string value = "";
 	for (const char &c : jsonText) {
 		switch (c) {
-			case '{' :
+			case '{':
 				if (atJson) {
 					if (atValue) {
 						if (atArray) {
@@ -195,7 +191,7 @@ JsonObject::JsonObject(const std::string &jsonText)
 	}
 }
 
-JsonObject::JsonObject(const JsonObject &other)
+JsonObject::JsonObject(const JsonObject &other) : jsonMap_(), jsonOrder_()
 {
 	if (this != &other) {
 		jsonMap_ = other._Get_JsonMap();
@@ -241,7 +237,7 @@ JsonObject &JsonObject::operator+=(const JsonObject &other)
 	return *this;
 }
 
-bool &JsonObject::operator==(const JsonObject &other) const
+bool JsonObject::operator==(const JsonObject &other) const
 {
 	bool equals = false;
 	if (jsonMap_ == other._Get_JsonMap() && jsonOrder_ == other._Get_JsonOrder()) {
@@ -251,9 +247,19 @@ bool &JsonObject::operator==(const JsonObject &other) const
 	return equals;
 }
 
+bool JsonObject::operator!=(const JsonObject &other) const
+{
+	bool unequal = false;
+	if (jsonMap_ != other._Get_JsonMap() || jsonOrder_ != other._Get_JsonOrder()) {
+		unequal = true;
+	}
+
+	return unequal;
+}
+
 std::string JsonObject::GetValueString(const std::string &key) const
 {
-	std::string value = GetValue_(key);
+	const std::string &value = GetValue_(key);
 	size_t first_pos = value.find("\"");
 	size_t last_pos = value.rfind("\"");
 	if (first_pos == std::string::npos || last_pos == std::string::npos) {
@@ -266,7 +272,7 @@ std::string JsonObject::GetValueString(const std::string &key) const
 
 int JsonObject::GetValueInt(const std::string &key) const
 {
-	std::string value = GetValue_(key);
+	const std::string &value = GetValue_(key);
 	int valueInt = std::stoi(value);
 
 	return valueInt;
@@ -274,7 +280,7 @@ int JsonObject::GetValueInt(const std::string &key) const
 
 long JsonObject::GetValueLong(const std::string &key) const
 {
-	std::string value = GetValue_(key);
+	const std::string &value = GetValue_(key);
 	long valueLong = std::stol(value);
 
 	return valueLong;
@@ -282,7 +288,7 @@ long JsonObject::GetValueLong(const std::string &key) const
 
 double JsonObject::GetValueDouble(const std::string &key) const
 {
-	std::string value = GetValue_(key);
+	const std::string &value = GetValue_(key);
 	double valueDouble = std::stod(value);
 
 	return valueDouble;
@@ -290,7 +296,7 @@ double JsonObject::GetValueDouble(const std::string &key) const
 
 bool JsonObject::GetValueBoolean(const std::string &key) const
 {
-	std::string value = GetValue_(key);
+	const std::string &value = GetValue_(key);
 	bool valueBoolean = false;
 	if (value == "true") {
 		valueBoolean = true;
@@ -301,7 +307,7 @@ bool JsonObject::GetValueBoolean(const std::string &key) const
 
 JsonObject JsonObject::GetValueJson(const std::string &key) const
 {
-	std::string value = GetValue_(key);
+	const std::string &value = GetValue_(key);
 	JsonObject valueJson = JsonObject(value);
 
 	return valueJson;
@@ -310,7 +316,7 @@ JsonObject JsonObject::GetValueJson(const std::string &key) const
 std::vector<std::string> JsonObject::GetArrayString(const std::string &key) const
 {
 	std::vector<std::string> arrayString{};
-	std::vector<std::string> array = GetArray_(key);
+	const std::vector<std::string> &array = GetArray_(key);
 	for (const std::string &value : array) {
 		size_t first_pos = value.find("\"");
 		size_t last_pos = value.rfind("\"");
@@ -327,7 +333,7 @@ std::vector<std::string> JsonObject::GetArrayString(const std::string &key) cons
 std::vector<int> JsonObject::GetArrayInt(const std::string &key) const
 {
 	std::vector<int> arrayInt{};
-	std::vector<std::string> array = GetArray_(key);
+	const std::vector<std::string> &array = GetArray_(key);
 	for (const std::string &value : array) {
 		int valueInt = std::stoi(value);
 		arrayInt.emplace_back(valueInt);
@@ -339,7 +345,7 @@ std::vector<int> JsonObject::GetArrayInt(const std::string &key) const
 std::vector<long> JsonObject::GetArrayLong(const std::string &key) const
 {
 	std::vector<long> arrayLong{};
-	std::vector<std::string> array = GetArray_(key);
+	const std::vector<std::string> &array = GetArray_(key);
 	for (const std::string &value : array) {
 		int valueInt = std::stol(value);
 		arrayLong.emplace_back(valueInt);
@@ -351,7 +357,7 @@ std::vector<long> JsonObject::GetArrayLong(const std::string &key) const
 std::vector<double> JsonObject::GetArrayDouble(const std::string &key) const
 {
 	std::vector<double> arrayDouble{};
-	std::vector<std::string> array = GetArray_(key);
+	const std::vector<std::string> &array = GetArray_(key);
 	for (const std::string &value : array) {
 		double valueDouble = std::stod(value);
 		arrayDouble.emplace_back(valueDouble);
@@ -363,7 +369,7 @@ std::vector<double> JsonObject::GetArrayDouble(const std::string &key) const
 std::vector<bool> JsonObject::GetArrayBoolean(const std::string &key) const
 {
 	std::vector<bool> arrayBoolean{};
-	std::vector<std::string> array = GetArray_(key);
+	const std::vector<std::string> &array = GetArray_(key);
 	for (const std::string &value : array) {
 		bool valueBoolean = false;
 		if (value == "true") {
@@ -378,7 +384,7 @@ std::vector<bool> JsonObject::GetArrayBoolean(const std::string &key) const
 std::vector<JsonObject> JsonObject::GetArrayJson(const std::string &key) const
 {
 	std::vector<JsonObject> arrayJson{};
-	std::vector<std::string> array = GetArray_(key);
+	const std::vector<std::string> &array = GetArray_(key);
 	for (const std::string &value : array) {
 		JsonObject valueJson = JsonObject(value);
 		arrayJson.emplace_back(valueJson);
@@ -570,7 +576,7 @@ std::vector<std::string> JsonObject::GetArray_(const std::string &key) const
 	if (jsonMap_.count(key) != 1) {
 		throw std::runtime_error("Failed to get JsonArray.");
 	}
-	std::string arrayText = jsonMap_.at(key);
+	const std::string &arrayText = jsonMap_.at(key);
 
 	std::vector<std::string> array{};
 	bool atValue = false;
@@ -721,6 +727,6 @@ std::vector<std::string> JsonObject::GetArray_(const std::string &key) const
 
 void JsonObject::PutValue_(const std::string &key, const std::string &value)
 {
-	jsonMap_[key] = value;
 	jsonOrder_.emplace_back(key);
+	jsonMap_[key] = value;
 }

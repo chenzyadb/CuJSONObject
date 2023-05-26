@@ -38,6 +38,7 @@ constexpr char demo_json[] =
 int main()
 {
     JsonObject json(demo_json);
+    std::cout << json.PrintToString(true) << std::endl;
 
     std::cout << "contains jsonName: " << json.Contains("jsonName") << std::endl;
     std::cout << "contains undefined: " << json.Contains("undefined") << std::endl;
@@ -46,6 +47,7 @@ int main()
     std::cout << "print jsonVersion: " << json.GetValueInt("jsonVersion") << std::endl;
     std::cout << "print longValue: " << json.GetValueLong("longValue") << std::endl;
     std::cout << "print num: " << json.GetValueInt("num") << std::endl;
+    
     std::cout << "print stringList: " << std::endl;
     for (const auto &s : json.GetArrayString("stringList")) {
         std::cout << s << std::endl;
@@ -124,7 +126,7 @@ int main()
     std::cout << "Print Json: " << std::endl;
     std::cout << json.PrintToString(true) << std::endl;
 
-    std::cout << "Is json equals: " << (json == itemJson) << std::endl;
+    std::cout << "Is json equals: " << !(json != itemJson) << std::endl;
 
     json = itemJson;
     std::cout << "Is json equals: " << (json == itemJson) << std::endl;

@@ -1,4 +1,7 @@
-#pragma once
+// Simple-JsonObject V1 by chenzyadb.
+
+#ifndef _JsonObject_H
+#define _JsonObject_H
 
 #include <iostream>
 #include <stdexcept>
@@ -18,7 +21,8 @@ class JsonObject
 		std::vector<std::string> _Get_JsonOrder() const;
 		JsonObject &operator=(const JsonObject &other);
 		JsonObject &operator+=(const JsonObject &other);
-		bool &operator==(const JsonObject &other) const;
+		bool operator==(const JsonObject &other) const;
+		bool operator!=(const JsonObject &other) const;
 
 		std::string GetValueString(const std::string &key) const;
 		int GetValueInt(const std::string &key) const;
@@ -61,3 +65,5 @@ class JsonObject
 		std::vector<std::string> GetArray_(const std::string &key) const;
 		void PutValue_(const std::string &key, const std::string &value);
 };
+
+#endif
