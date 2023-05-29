@@ -21,14 +21,14 @@ constexpr char demo_json[] =
 "    \"hello\",                   \r\n"
 "    \"world\",                   \r\n"
 "    \"chenzyadb\"],              \r\n"
-"\"intList\": [                   \r\n"
-"    187, 26, 3],                 \r\n"
+"\"intList\": [1, 2, 3],          \r\n"
 "\"longList\": [                  \r\n"
 "    123456789,987654321],        \r\n"
 "\"doubleList\": [                \r\n"
 "    1.23, 3.141592, 114.5],      \r\n"
 "\"booleanList\": [               \r\n"
 "    true, false, true],          \r\n"
+"\"emptyList\": [],               \r\n"
 "\"jsonList\": [                  \r\n"
 "    {\"name\": \"abcabc\"},      \r\n"
 "    {\"id\": 12345678},          \r\n"
@@ -72,6 +72,9 @@ int main()
     for (const auto &j : json.GetArrayJson("jsonList")) {
         std::cout << j.PrintToString(false) << std::endl;
     }
+    std::cout << "Get EmptyList: " << std::endl;
+    const auto &list = json.GetArrayString("emptyList");
+    std::cout << "List size: " << list.size() << std::endl;
 
     JsonObject itemJson = json.GetValueJson("json");
     std::cout << "print json(formatted):" << std::endl;

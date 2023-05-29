@@ -620,7 +620,9 @@ std::vector<std::string> JsonObject::GetArray_(const std::string &key) const
 						value += c;
 					} else {
 						atValue = false;
-						array.emplace_back(value);
+						if (!value.empty()) {
+							array.emplace_back(value);
+						}
 						value = "";
 					}
 				} else {
