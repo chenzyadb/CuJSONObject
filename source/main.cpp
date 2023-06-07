@@ -84,6 +84,9 @@ int main()
     std::cout << "print boolean: " << itemJson.GetValueBoolean("boolean") << std::endl;
     std::cout << "print number: " << itemJson.GetValueInt("number") << std::endl;
     std::cout << "print double_num: " << itemJson.GetValueDouble("double_num") << std::endl;
+    itemJson.PutValueInt("number", 87654321);
+    std::cout << "print modified json:" << std::endl;
+    std::cout << itemJson.PrintToString(true) << std::endl;
 
     JsonObject secItemJson = itemJson.GetValueJson("json");
     std::cout << "print json(formatted):" << std::endl;
