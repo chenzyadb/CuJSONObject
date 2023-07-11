@@ -4,6 +4,46 @@ JsonObject::JsonObject() : jsonMap_(), jsonOrder_() { }
 
 JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 {
+	const auto getEscapeChar = [](char ch) -> char {
+		char ret = ch;
+		switch (ch) {
+			case '\\':
+				ret = '\\';
+				break;
+			case '\"':
+				ret = '\"';
+				break;
+			case '\'':
+				ret = '\'';
+				break;
+			case 'n':
+				ret = '\n';
+				break;
+			case 'r':
+				ret = '\r';
+				break;
+			case 't':
+				ret = '\t';
+				break;
+			case 'b':
+				ret = '\b';
+				break;
+			case 'f':
+				ret = '\f';
+				break;
+			case 'a':
+				ret = '\a';
+				break;
+			case '/':
+				ret = '/';
+				break;
+			default:
+				break;
+		}
+		return ret;
+	};
+
+	size_t pos = 0;
 	bool atJson = false;
 	bool atKey = false;
 	bool atValue = false;
@@ -14,20 +54,20 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 	int bracketsNum = 0;
 	std::string key = "";
 	std::string value = "";
-	for (const char &c : jsonText) {
-		switch (c) {
+	while (pos < jsonText.size()) {
+		switch (jsonText[pos]) {
 			case '{':
 				if (atJson) {
 					if (atValue) {
 						if (atArray) {
-							value += c;
+							value += jsonText[pos];
 						} else if (atString) {
-							value += c;
+							value += jsonText[pos];
 						} else if (atItemJson) {
-							value += c;
+							value += jsonText[pos];
 							bracesNum++;
 						} else if (!atItemJson) {
-							value += c;
+							value += jsonText[pos];
 							atItemJson = true;
 							bracesNum++;
 						}
@@ -41,11 +81,11 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 			case '}':
 				if (atValue) {
 					if (atArray) {
-						value += c;
+						value += jsonText[pos];
 					} else if (atString) {
-						value += c;
+						value += jsonText[pos];
 					} else if (atItemJson) {
-						value += c;
+						value += jsonText[pos];
 						bracesNum--;
 						if (bracesNum == 0) {
 							atItemJson = false;
@@ -62,14 +102,14 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 				if (atJson) {
 					if (atValue) {
 						if (atArray) {
-							value += c;
+							value += jsonText[pos];
 						} else if (atItemJson) {
-							value += c;
+							value += jsonText[pos];
 						} else if (atString) {
-							value += c;
+							value += jsonText[pos];
 							atString = false;
 						} else {
-							value += c;
+							value += jsonText[pos];
 							atString = true;
 						}
 					} else if (atKey) {
@@ -87,11 +127,11 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 						atValue = true;
 					} else if (atValue) {
 						if (atArray) {
-							value += c;
+							value += jsonText[pos];
 						} else if (atItemJson) {
-							value += c;
+							value += jsonText[pos];
 						} else if (atString) {
-							value += c;
+							value += jsonText[pos];
 						} else {
 							throw std::runtime_error("Invalid JSON structure.");
 						}
@@ -104,11 +144,11 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 				if (atJson) {
 					if (atValue) {
 						if (atArray) {
-							value += c;
+							value += jsonText[pos];
 						} else if (atItemJson) {
-							value += c;
+							value += jsonText[pos];
 						} else if (atString) {
-							value += c;
+							value += jsonText[pos];
 						} else {
 							atValue = false;
 						}
@@ -123,14 +163,14 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 				if (atJson) {
 					if (atValue) {
 						if (atArray) {
-							value += c;
+							value += jsonText[pos];
 							bracketsNum++;
 						} else if (atItemJson) {
-							value += c;
+							value += jsonText[pos];
 						} else if (atString) {
-							value += c;
+							value += jsonText[pos];
 						} else {
-							value += c;
+							value += jsonText[pos];
 							atArray = true;
 							bracketsNum++;
 						}
@@ -143,15 +183,15 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 				if (atJson) {
 					if (atValue) {
 						if (atArray) {
-							value += c;
+							value += jsonText[pos];
 							bracketsNum--;
 							if (bracketsNum == 0) {
 								atArray = false;
 							}
 						} else if (atItemJson) {
-							value += c;
+							value += jsonText[pos];
 						} else if (atString) {
-							value += c;
+							value += jsonText[pos];
 						} else {
 							throw std::runtime_error("Invalid JSON structure.");
 						}
@@ -170,11 +210,21 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 				break;
 			case '\r':
 				break;
+			case '\\':
+				pos++;
+				if (atKey) {
+					key += getEscapeChar(jsonText[pos]);
+				} else if (atValue) {
+					value += getEscapeChar(jsonText[pos]);
+				} else {
+					throw std::runtime_error("Invalid JSON structure.");
+				}
+				break;
 			default:
 				if (atKey) {
-					key += c;
+					key += jsonText[pos];
 				} else if (atValue) {
-					value += c;
+					value += jsonText[pos];
 				} else {
 					throw std::runtime_error("Invalid JSON structure.");
 				}
@@ -185,6 +235,7 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 			key = "";
 			value = "";
 		}
+		pos++;
 	}
 	if (atKey || atValue) {
 		throw std::runtime_error("Invalid JSON structure.");
@@ -558,7 +609,7 @@ std::string JsonObject::PrintToString(const bool &format) const
 		jsonText = jsonText.substr(0, jsonText.rfind(","));
 		jsonText += "}";
 	}
-	
+
 	return jsonText;
 }
 
@@ -586,19 +637,19 @@ std::vector<std::string> JsonObject::GetArray_(const std::string &key) const
 	int bracesNum = 0;
 	int bracketsNum = 0;
 	std::string value = "";
-	for (const char &c : arrayText) {
-		switch (c) {
+	for (const char &ch : arrayText) {
+		switch (ch) {
 			case '[':
 				if (atValue) {
 					if (atArray) {
-						value += c;
+						value += ch;
 						bracketsNum++;
 					} else if (atJson) {
-						value += c;
+						value += ch;
 					} else if (atString) {
-						value += c;
+						value += ch;
 					} else {
-						value += c;
+						value += ch;
 						atArray = true;
 						bracketsNum++;
 					}
@@ -609,15 +660,15 @@ std::vector<std::string> JsonObject::GetArray_(const std::string &key) const
 			case ']':
 				if (atValue) {
 					if (atArray) {
-						value += c;
+						value += ch;
 						bracketsNum--;
 						if (bracketsNum == 0) {
 							atArray = false;
 						}
 					} else if (atJson) {
-						value += c;
+						value += ch;
 					} else if (atString) {
-						value += c;
+						value += ch;
 					} else {
 						atValue = false;
 						if (!value.empty()) {
@@ -632,14 +683,14 @@ std::vector<std::string> JsonObject::GetArray_(const std::string &key) const
 			case '\"':
 				if (atValue) {
 					if (atArray) {
-						value += c;
+						value += ch;
 					} else if (atJson) {
-						value += c;
+						value += ch;
 					} else if (atString) {
-						value += c;
+						value += ch;
 						atString = false;
 					} else {
-						value += c;
+						value += ch;
 						atString = true;
 					}
 				} else {
@@ -649,14 +700,14 @@ std::vector<std::string> JsonObject::GetArray_(const std::string &key) const
 			case '{':
 				if (atValue) {
 					if (atJson) {
-						value += c;
+						value += ch;
 						bracesNum++;
 					} else if (atArray) {
-						value += c;
+						value += ch;
 					} else if (atString) {
-						value += c;
+						value += ch;
 					} else {
-						value += c;
+						value += ch;
 						atJson = true;
 						bracesNum++;
 					}
@@ -667,15 +718,15 @@ std::vector<std::string> JsonObject::GetArray_(const std::string &key) const
 			case '}':
 				if (atValue) {
 					if (atJson) {
-						value += c;
+						value += ch;
 						bracesNum--;
 						if (bracesNum == 0) {
 							atJson = false;
 						}
 					} else if (atArray) {
-						value += c;
+						value += ch;
 					} else if (atString) {
-						value += c;
+						value += ch;
 					} else {
 						throw std::runtime_error("Invalid JSONArray structure.");
 					}
@@ -686,11 +737,11 @@ std::vector<std::string> JsonObject::GetArray_(const std::string &key) const
 			case ',':
 				if (atValue) {
 					if (atArray) {
-						value += c;
+						value += ch;
 					} else if (atJson) {
-						value += c;
+						value += ch;
 					} else if (atString) {
-						value += c;
+						value += ch;
 					} else {
 						array.emplace_back(value);
 						value = "";
@@ -699,17 +750,9 @@ std::vector<std::string> JsonObject::GetArray_(const std::string &key) const
 					throw std::runtime_error("Invalid JSONArray structure.");
 				}
 				break;
-			case ' ':
-				break;
-			case '\n':
-				break;
-			case '\t':
-				break;
-			case '\r':
-				break;
 			default:
 				if (atValue) {
-					value += c;
+					value += ch;
 				} else {
 					throw std::runtime_error("Invalid JSONArray structure.");
 				}

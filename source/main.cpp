@@ -3,37 +3,38 @@
 #include "JsonObject.h"
 
 constexpr char demo_json[] =
-"{                                \r\n"
-"\"jsonName\": \"demoJson\",      \r\n"
-"\"jsonVersion\": 100,            \r\n"
-"\"longValue\": 1234567890,       \r\n"
-"\"json\": {                      \r\n"
-"   \"boolean\": true,            \r\n"
-"   \"number\": 1234567,          \r\n"
-"   \"double_num\": 3.141592,     \r\n"
-"   \"json\": {                   \r\n"
-"       \"text\": \"Hello,World\",\r\n"
-"       \"num\": 11451419         \r\n"
-"      }                          \r\n"
-"   },                            \r\n"
-"\"num\": 1919810,                \r\n"
-"\"stringList\": [                \r\n"
-"    \"hello\",                   \r\n"
-"    \"world\",                   \r\n"
-"    \"chenzyadb\"],              \r\n"
-"\"intList\": [1, 2, 3],          \r\n"
-"\"longList\": [                  \r\n"
-"    123456789,987654321],        \r\n"
-"\"doubleList\": [                \r\n"
-"    1.23, 3.141592, 114.5],      \r\n"
-"\"booleanList\": [               \r\n"
-"    true, false, true],          \r\n"
-"\"emptyList\": [],               \r\n"
-"\"jsonList\": [                  \r\n"
-"    {\"name\": \"abcabc\"},      \r\n"
-"    {\"id\": 12345678},          \r\n"
-"    {\"male\": false}]           \r\n"
-"}                                \r\n";
+"{                                  \r\n"
+"\"jsonName\": \"demoJson\",        \r\n"
+"\"jsonVersion\": 100,              \r\n"
+"\"longValue\": 1234567890,         \r\n"
+"\"escapeChar\": \"\\\\\\t\\n\\/\", \r\n"
+"\"json\": {                        \r\n"
+"   \"boolean\": true,              \r\n"
+"   \"number\": 1234567,            \r\n"
+"   \"double_num\": 3.141592,       \r\n"
+"   \"json\": {                     \r\n"
+"       \"text\": \"Hello,World\",  \r\n"
+"       \"num\": 11451419           \r\n"
+"      }                            \r\n"
+"   },                              \r\n"
+"\"num\": 1919810,                  \r\n"
+"\"stringList\": [                  \r\n"
+"    \"hello\",                     \r\n"
+"    \"world\",                     \r\n"
+"    \"chenzyadb\"],                \r\n"
+"\"intList\": [1, 2, 3],            \r\n"
+"\"longList\": [                    \r\n"
+"    123456789,987654321],          \r\n"
+"\"doubleList\": [                  \r\n"
+"    1.23, 3.141592, 114.5],        \r\n"
+"\"booleanList\": [                 \r\n"
+"    true, false, true],            \r\n"
+"\"emptyList\": [],                 \r\n"
+"\"jsonList\": [                    \r\n"
+"    {\"name\": \"abcabc\"},        \r\n"
+"    {\"id\": 12345678},            \r\n"
+"    {\"male\": false}]             \r\n"
+"}                                  \r\n";
 
 int main()
 {
@@ -47,6 +48,7 @@ int main()
     std::cout << "print jsonVersion: " << json.GetValueInt("jsonVersion") << std::endl;
     std::cout << "print longValue: " << json.GetValueLong("longValue") << std::endl;
     std::cout << "print num: " << json.GetValueInt("num") << std::endl;
+    std::cout << "print escapeChar: " << json.GetValueString("escapeChar") << std::endl;
     
     std::cout << "print stringList: " << std::endl;
     for (const auto &s : json.GetArrayString("stringList")) {
