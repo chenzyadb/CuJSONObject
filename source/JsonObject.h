@@ -12,23 +12,37 @@
 #include <utility>
 
 class JsonObject;
-
 class JsonItem
 {
 	public:
 		JsonItem();
 		JsonItem(const JsonItem &other);
+		JsonItem(const std::string &raw);
 		~JsonItem();
 		JsonItem &operator=(const JsonItem &other);
+		bool operator==(const JsonItem &other) const;
+		bool operator!=(const JsonItem &other) const;
 
-		std::string valueRaw;
-		double valueDouble;
-		int valueInt;
-		int64_t valueLong;
-		std::string valueString;
-		bool valueBoolean;
-		std::vector<JsonItem> valueArray;
-		JsonObject* valueJson;
+		std::string ValueRaw() const;
+		double ValueDouble() const;
+		int ValueInt() const;
+		int64_t ValueLong() const;
+		std::string ValueString() const;
+		bool ValueBoolean() const;
+		std::vector<JsonItem> ValueArray() const;
+		JsonObject ValueJson() const;
+
+	private:
+		std::string valueRaw_;
+		double valueDouble_;
+		int valueInt_;
+		int64_t valueLong_;
+		std::string valueString_;
+		bool valueBoolean_;
+		std::vector<JsonItem> valueArray_;
+		JsonObject* valueJson_;
+
+		std::vector<JsonItem> ParseArray_(const std::string &valueRaw);
 };
 
 class JsonObject
@@ -96,8 +110,6 @@ class JsonObject
 
 		JsonItem GetValue_(const std::string &key) const;
 		void PutValue_(const std::string &key, const JsonItem &value);
-		std::vector<JsonItem> CreateJsonArray_(const std::string &valueRaw);
-		JsonItem CreateJsonItem_(const std::string &valueRaw);
 };
 
 #endif
