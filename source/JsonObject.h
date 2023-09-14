@@ -1,15 +1,29 @@
 // Simple-JsonObject V2 by chenzyadb.
+// Based on C++14 STL (MSVC).
 
 #ifndef _JsonObject_V2_H
 #define _JsonObject_V2_H
 
-#include <iostream>
-#include <stdexcept>
-#include <unordered_map>
+#include <exception>
+#include <string>
+#include <map>
 #include <vector>
 #include <algorithm>
-#include <string>
-#include <utility>
+#include <memory>
+
+class JsonExcept : public std::exception
+{
+	public:
+		JsonExcept(const std::string &message) : message_(message) { }
+
+		const char* what() const noexcept override
+		{
+			return message_.c_str();
+		}
+
+	private:
+		const std::string message_;
+};
 
 class JsonObject;
 class JsonItem
@@ -22,6 +36,8 @@ class JsonItem
 		JsonItem &operator=(const JsonItem &other);
 		bool operator==(const JsonItem &other) const;
 		bool operator!=(const JsonItem &other) const;
+		bool operator>(const JsonItem &other) const;
+		bool operator<(const JsonItem &other) const;
 
 		std::string ValueRaw() const;
 		double ValueDouble() const;
@@ -53,12 +69,15 @@ class JsonObject
 		JsonObject(const JsonObject &other);
 		~JsonObject();
 		
-		std::unordered_map<std::string, JsonItem> _Get_JsonMap() const;
+		std::map<std::string, JsonItem> _Get_JsonMap() const;
 		std::vector<std::string> _Get_JsonOrder() const;
 		JsonObject &operator=(const JsonObject &other);
 		JsonObject &operator+=(const JsonObject &other);
 		bool operator==(const JsonObject &other) const;
 		bool operator!=(const JsonObject &other) const;
+		bool operator>(const JsonObject &other) const;
+		bool operator<(const JsonObject &other) const;
+		JsonItem operator[](const std::string &key) const;
 
 		std::string GetValueRaw(const std::string &key) const;
 		std::string GetValueString(const std::string &key) const;
@@ -86,6 +105,7 @@ class JsonObject
 		void PutValueBoolean(const std::string &key, const bool &value);
 		void PutValueJson(const std::string &key, const JsonObject &value);
 		void PutValueItem(const std::string &key, const JsonItem &value);
+		void PutValueNull(const std::string &key);
 
 		void PutArrayRaw(const std::string &key, const std::vector<std::string> &array);
 		void PutArrayString(const std::string &key, const std::vector<std::string> &array);
@@ -105,7 +125,7 @@ class JsonObject
 		std::string PrintToString(bool format) const;
 
 	private:
-		std::unordered_map<std::string, JsonItem> jsonMap_;
+		std::map<std::string, JsonItem> jsonMap_;
 		std::vector<std::string> jsonOrder_;
 
 		JsonItem GetValue_(const std::string &key) const;

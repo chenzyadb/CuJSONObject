@@ -1,17 +1,17 @@
 #include "JsonObject.h"
 
 JsonItem::JsonItem() : 
-	valueRaw_(""),
+	valueRaw_("null"),
 	valueDouble_(0.0), 
 	valueInt_(0), 
 	valueLong_(0), 
 	valueString_(""),
 	valueBoolean_(false), 
-	valueArray_(), 
+	valueArray_(),
 	valueJson_(nullptr) { }
 
 JsonItem::JsonItem(const JsonItem &other) : 
-	valueRaw_(""),
+	valueRaw_("null"),
 	valueDouble_(0.0),
 	valueInt_(0),
 	valueLong_(0),
@@ -20,7 +20,7 @@ JsonItem::JsonItem(const JsonItem &other) :
 	valueArray_(),
 	valueJson_(nullptr)
 {
-	if (this != &other) {
+	if (this != std::addressof(other)) {
 		valueRaw_ = other.ValueRaw();
 		valueDouble_ = other.ValueDouble();
 		valueInt_ = other.ValueInt();
@@ -42,121 +42,6 @@ JsonItem::JsonItem(const std::string &raw) :
 	valueArray_(),
 	valueJson_(nullptr)
 {
-	constexpr int TYPE_NUM = 0, TYPE_JSON = 1, TYPE_ARRAY = 2, TYPE_STRING = 3;
-	const auto getValueType = [](const std::string &raw) -> int {
-		int type = TYPE_NUM;
-		switch (raw[0]) {
-			case '{':
-				type = TYPE_JSON;
-				break;
-			case '[':
-				type = TYPE_ARRAY;
-				break;
-			case '\"':
-				type = TYPE_STRING;
-				break;
-			default:
-				type = TYPE_NUM;
-				break;
-		}
-		return type;
-	};
-	const auto getDecimal = [](int decimalPlaces) -> double {
-		double dec = 1.0;
-		for (int i = 0; i < decimalPlaces; i++) {
-			dec *= 0.1;
-		}
-		return dec;
-	};
-	const auto rawToDouble = [&](const std::string &raw) -> double {
-		double valueDouble = 0.0;
-		bool atDecimal = false;
-		int decimalPlaces = 0;
-		for (const auto &c : raw) {
-			switch (c) {
-				case '0':
-					if (!atDecimal) {
-						valueDouble = valueDouble * 10;
-					}
-					break;
-				case '1':
-					if (!atDecimal) {
-						valueDouble = valueDouble * 10 + 1;
-					} else {
-						valueDouble = valueDouble + 1 * getDecimal(decimalPlaces);
-					}
-					break;
-				case '2':
-					if (!atDecimal) {
-						valueDouble = valueDouble * 10 + 2;
-					} else {
-						valueDouble = valueDouble + 2 * getDecimal(decimalPlaces);
-					}
-					break;
-				case '3':
-					if (!atDecimal) {
-						valueDouble = valueDouble * 10 + 3;
-					} else {
-						valueDouble = valueDouble + 3 * getDecimal(decimalPlaces);
-					}
-					break;
-				case '4':
-					if (!atDecimal) {
-						valueDouble = valueDouble * 10 + 4;
-					} else {
-						valueDouble = valueDouble + 4 * getDecimal(decimalPlaces);
-					}
-					break;
-				case '5':
-					if (!atDecimal) {
-						valueDouble = valueDouble * 10 + 5;
-					} else {
-						valueDouble = valueDouble + 5 * getDecimal(decimalPlaces);
-					}
-					break;
-				case '6':
-					if (!atDecimal) {
-						valueDouble = valueDouble * 10 + 6;
-					} else {
-						valueDouble = valueDouble + 6 * getDecimal(decimalPlaces);
-					}
-					break;
-				case '7':
-					if (!atDecimal) {
-						valueDouble = valueDouble * 10 + 7;
-					} else {
-						valueDouble = valueDouble + 7 * getDecimal(decimalPlaces);
-					}
-					break;
-				case '8':
-					if (!atDecimal) {
-						valueDouble = valueDouble * 10 + 8;
-					} else {
-						valueDouble = valueDouble + 8 * getDecimal(decimalPlaces);
-					}
-					break;
-				case '9':
-					if (!atDecimal) {
-						valueDouble = valueDouble * 10 + 9;
-					} else {
-						valueDouble = valueDouble + 9 * getDecimal(decimalPlaces);
-					}
-					break;
-				case '.':
-					atDecimal = true;
-					break;
-				default:
-					break;
-			}
-			if (atDecimal) {
-				decimalPlaces++;
-			}
-		}
-		if (raw[0] == '-') {
-			valueDouble *= -1;
-		}
-		return valueDouble;
-	};
 	const auto rawToString = [](const std::string &raw) -> std::string {
 		size_t end_pos = raw.rfind("\"");
 		if (end_pos == 0 || end_pos == std::string::npos) {
@@ -168,18 +53,38 @@ JsonItem::JsonItem(const std::string &raw) :
 		return (raw == "true");
 	};
 
-	int type = getValueType(valueRaw_);
-	if (type == TYPE_NUM) {
-		valueDouble_ = rawToDouble(valueRaw_);
-		valueInt_ = static_cast<int>(valueDouble_);
-		valueLong_ = static_cast<int64_t>(valueDouble_);
-		valueBoolean_ = rawToBoolean(valueRaw_);
-	} else if (type == TYPE_JSON) {
-		valueJson_ = new JsonObject(valueRaw_);
-	} else if (type == TYPE_ARRAY) {
-		valueArray_ = ParseArray_(valueRaw_);
-	} else if (type == TYPE_STRING) {
-		valueString_ = rawToString(valueRaw_);
+	switch (valueRaw_[0]) {
+		case '{':
+			valueJson_ = new JsonObject(valueRaw_);
+			break;
+		case '[':
+			valueArray_ = ParseArray_(valueRaw_);
+			break;
+		case '\"':
+			valueString_ = rawToString(valueRaw_);
+			break;
+		case '-':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			valueDouble_ = std::stod(valueRaw_);
+			valueInt_ = static_cast<int>(valueDouble_);
+			valueLong_ = static_cast<int64_t>(valueDouble_);
+			break;
+		case 't':
+		case 'f':
+			valueBoolean_ = rawToBoolean(valueRaw_);
+			break;
+		default:
+			// NULL
+			break;
 	}
 }
 
@@ -192,7 +97,7 @@ JsonItem::~JsonItem()
 
 JsonItem &JsonItem::operator=(const JsonItem &other)
 {
-	if (this != &other) {
+	if (this != std::addressof(other)) {
 		valueRaw_ = other.ValueRaw();
 		valueDouble_ = other.ValueDouble();
 		valueInt_ = other.ValueInt();
@@ -214,6 +119,16 @@ bool JsonItem::operator==(const JsonItem &other) const
 bool JsonItem::operator!=(const JsonItem &other) const
 {
 	return (valueRaw_ != other.ValueRaw());
+}
+
+bool JsonItem::operator>(const JsonItem &other) const
+{
+	return (this > std::addressof(other));
+}
+
+bool JsonItem::operator<(const JsonItem &other) const
+{
+	return (this < std::addressof(other));
 }
 
 std::string JsonItem::ValueRaw() const
@@ -271,7 +186,7 @@ std::vector<JsonItem> JsonItem::ParseArray_(const std::string &valueRaw)
 			} else if (valueRaw[start_pos + lenth] == ']') {
 				bracketsNum--;
 			} else if (valueRaw[start_pos + lenth] == '\0') {
-				throw std::runtime_error("Invalid JSON structure.");
+				throw JsonExcept("Invalid JSON structure.");
 			}
 			lenth++;
 		}
@@ -285,7 +200,7 @@ std::vector<JsonItem> JsonItem::ParseArray_(const std::string &valueRaw)
 			} else if (valueRaw[start_pos + lenth] == '}') {
 				bracesNum--;
 			} else if (valueRaw[start_pos + lenth] == '\0') {
-				throw std::runtime_error("Invalid JSON structure.");
+				throw JsonExcept("Invalid JSON structure.");
 			}
 			lenth++;
 		}
@@ -294,7 +209,7 @@ std::vector<JsonItem> JsonItem::ParseArray_(const std::string &valueRaw)
 	const auto getStringLenth = [&](size_t start_pos) -> size_t {
 		size_t end_pos = valueRaw.find('\"', start_pos + 1);
 		if (end_pos == std::string::npos) {
-			throw std::runtime_error("Invalid JSON structure.");
+			throw JsonExcept("Invalid JSON structure.");
 		}
 		return end_pos - start_pos + 1;
 	};
@@ -309,7 +224,7 @@ std::vector<JsonItem> JsonItem::ParseArray_(const std::string &valueRaw)
 	std::vector<std::string> arrayRaw{};
 	size_t pos = 1, end_pos = valueRaw.rfind(']');
 	if (end_pos == std::string::npos) {
-		throw std::runtime_error("Invalid JSON structure.");
+		throw JsonExcept("Invalid JSON structure.");
 	}
 	while (pos < end_pos) {
 		const auto &ch = valueRaw[pos];
@@ -338,6 +253,9 @@ std::vector<JsonItem> JsonItem::ParseArray_(const std::string &valueRaw)
 					pos += lenth;
 				}
 				break;
+			case ']':
+			case '}':
+				throw JsonExcept("Invalid JSON structure.");
 			default:
 				{
 					auto lenth = getLenth(pos);
@@ -390,6 +308,9 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 			case 'a':
 				ret = '\a';
 				break;
+			case 'v':
+				ret = '\v';
+				break;
 			case '/':
 				ret = '/';
 				break;
@@ -421,7 +342,7 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 							bracesNum++;
 						}
 					} else {
-						throw std::runtime_error("Invalid JSON structure.");
+						throw JsonExcept("Invalid JSON structure.");
 					}
 				} else {
 					atJson = true;
@@ -444,7 +365,7 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 						atJson = false;
 					}
 				} else {
-					throw std::runtime_error("Invalid JSON structure.");
+					throw JsonExcept("Invalid JSON structure.");
 				}
 				break;
 			case '\"':
@@ -467,7 +388,7 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 						atKey = true;
 					}
 				} else {
-					throw std::runtime_error("Invalid JSON structure.");
+					throw JsonExcept("Invalid JSON structure.");
 				}
 				break;
 			case ':':
@@ -482,11 +403,11 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 						} else if (atString) {
 							value += jsonText[pos];
 						} else {
-							throw std::runtime_error("Invalid JSON structure.");
+							throw JsonExcept("Invalid JSON structure.");
 						}
 					}
 				} else {
-					throw std::runtime_error("Invalid JSON structure.");
+					throw JsonExcept("Invalid JSON structure.");
 				}
 				break;
 			case ',':
@@ -502,10 +423,10 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 							atValue = false;
 						}
 					} else {
-						throw std::runtime_error("Invalid JSON structure.");
+						throw JsonExcept("Invalid JSON structure.");
 					}
 				} else {
-					throw std::runtime_error("Invalid JSON structure.");
+					throw JsonExcept("Invalid JSON structure.");
 				}
 				break;
 			case '[':
@@ -525,7 +446,7 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 						}
 					}
 				} else {
-					throw std::runtime_error("Invalid JSON structure.");
+					throw JsonExcept("Invalid JSON structure.");
 				}
 				break;
 			case ']':
@@ -542,22 +463,23 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 						} else if (atString) {
 							value += jsonText[pos];
 						} else {
-							throw std::runtime_error("Invalid JSON structure.");
+							throw JsonExcept("Invalid JSON structure.");
 						}
 					} else {
-						throw std::runtime_error("Invalid JSON structure.");
+						throw JsonExcept("Invalid JSON structure.");
 					}
 				} else {
-					throw std::runtime_error("Invalid JSON structure.");
+					throw JsonExcept("Invalid JSON structure.");
 				}
 				break;
 			case ' ':
-				break;
 			case '\n':
-				break;
 			case '\t':
-				break;
 			case '\r':
+			case '\f':
+			case '\a':
+			case '\b':
+			case '\v':
 				break;
 			case '\\':
 				pos++;
@@ -566,7 +488,7 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 				} else if (atValue) {
 					value += getEscapeChar(jsonText[pos]);
 				} else {
-					throw std::runtime_error("Invalid JSON structure.");
+					throw JsonExcept("Invalid JSON structure.");
 				}
 				break;
 			default:
@@ -575,7 +497,7 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 				} else if (atValue) {
 					value += jsonText[pos];
 				} else {
-					throw std::runtime_error("Invalid JSON structure.");
+					throw JsonExcept("Invalid JSON structure.");
 				}
 				break;
 		}
@@ -587,13 +509,13 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 		pos++;
 	}
 	if (atKey || atValue) {
-		throw std::runtime_error("Invalid JSON structure.");
+		throw JsonExcept("Invalid JSON structure.");
 	}
 }
 
 JsonObject::JsonObject(const JsonObject &other) : jsonMap_(), jsonOrder_()
 {
-	if (this != &other) {
+	if (this != std::addressof(other)) {
 		jsonMap_ = other._Get_JsonMap();
 		jsonOrder_ = other._Get_JsonOrder();
 	}
@@ -601,7 +523,7 @@ JsonObject::JsonObject(const JsonObject &other) : jsonMap_(), jsonOrder_()
 
 JsonObject::~JsonObject() { }
 
-std::unordered_map<std::string, JsonItem> JsonObject::_Get_JsonMap() const
+std::map<std::string, JsonItem> JsonObject::_Get_JsonMap() const
 {
 	return jsonMap_;
 }
@@ -613,7 +535,7 @@ std::vector<std::string> JsonObject::_Get_JsonOrder() const
 
 JsonObject &JsonObject::operator=(const JsonObject &other)
 {
-	if (this != &other) {
+	if (this != std::addressof(other)) {
 		jsonMap_ = other._Get_JsonMap();
 		jsonOrder_ = other._Get_JsonOrder();
 	}
@@ -645,6 +567,21 @@ bool JsonObject::operator==(const JsonObject &other) const
 bool JsonObject::operator!=(const JsonObject &other) const
 {
 	return (jsonOrder_ != other._Get_JsonOrder() || jsonMap_ != other._Get_JsonMap());
+}
+
+bool JsonObject::operator>(const JsonObject &other) const
+{
+	return (this > std::addressof(other));
+}
+
+bool JsonObject::operator<(const JsonObject &other) const
+{
+	return (this < std::addressof(other));
+}
+
+JsonItem JsonObject::operator[](const std::string &key) const
+{
+	return GetValue_(key);
 }
 
 std::string JsonObject::GetValueRaw(const std::string &key) const
@@ -818,6 +755,11 @@ void JsonObject::PutValueItem(const std::string &key, const JsonItem &value)
 	PutValue_(key, value);
 }
 
+void JsonObject::PutValueNull(const std::string &key)
+{
+	PutValue_(key, JsonItem());
+}
+
 void JsonObject::PutArrayRaw(const std::string &key, const std::vector<std::string> &array)
 {
 	std::string valueRaw = "[";
@@ -915,7 +857,7 @@ void JsonObject::Remove(const std::string &key)
 		if (iter != jsonMap_.end()) {
 			jsonMap_.erase(iter);
 		} else {
-			throw std::runtime_error("Failed to find JsonKey.");
+			throw JsonExcept("Failed to find JsonKey.");
 		}
 	}
 	{
@@ -940,7 +882,7 @@ size_t JsonObject::GetKeyPos(const std::string &key) const
 {
 	const auto &iter = std::find(jsonOrder_.begin(), jsonOrder_.end(), key);
 	if (iter == jsonOrder_.end()) {
-		throw std::runtime_error("Failed to find JsonKey.");
+		throw JsonExcept("Failed to find JsonKey.");
 	}
 
 	return static_cast<size_t>(iter - jsonOrder_.begin());
@@ -949,7 +891,7 @@ size_t JsonObject::GetKeyPos(const std::string &key) const
 JsonItem JsonObject::GetItemAtPos(size_t pos) const
 {
 	if (pos >= jsonMap_.size()) {
-		throw std::runtime_error("Position out of range.");
+		throw JsonExcept("Position out of range.");
 	}
 
 	return jsonMap_.at(jsonOrder_[pos]);
@@ -960,7 +902,7 @@ std::string JsonObject::PrintToString(bool format) const
 	std::string jsonText = "{";
 	if (format) {
 		for (const std::string &key : jsonOrder_) {
-			jsonText += "\n\t\"" + key + "\" :" + GetValue_(key).ValueRaw() + ",";
+			jsonText += "\n  \"" + key + "\": " + GetValue_(key).ValueRaw() + ",";
 		}
 		jsonText = jsonText.substr(0, jsonText.rfind(",")) + "\n}";
 	} else {
@@ -977,7 +919,7 @@ JsonItem JsonObject::GetValue_(const std::string &key) const
 {
 	auto iter = jsonMap_.find(key);
 	if (iter == jsonMap_.end()) {
-		throw std::runtime_error("Failed to get JsonValue.");
+		throw JsonExcept("Failed to get JsonValue.");
 	}
 
 	return iter->second;
