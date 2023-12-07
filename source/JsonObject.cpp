@@ -42,14 +42,14 @@ JsonItem::JsonItem(const std::string &raw) :
 	valueArray_(),
 	valueJson_(nullptr)
 {
-	const auto rawToString = [](const std::string &raw) -> std::string {
+	static const auto rawToString = [](const std::string &raw) -> std::string {
 		size_t end_pos = raw.rfind("\"");
 		if (end_pos == 0 || end_pos == std::string::npos) {
 			return std::string();
 		}
 		return raw.substr(1, end_pos - 1);
 	};
-	const auto rawToBoolean = [](const std::string &raw) -> bool {
+	static const auto rawToBoolean = [](const std::string &raw) -> bool {
 		return (raw == "true");
 	};
 
@@ -75,15 +75,16 @@ JsonItem::JsonItem(const std::string &raw) :
 		case '8':
 		case '9':
 			valueDouble_ = std::stod(valueRaw_);
-			valueInt_ = static_cast<int>(valueDouble_);
-			valueLong_ = static_cast<int64_t>(valueDouble_);
+			valueLong_ = std::stoll(valueRaw_);
+			if (valueLong_ <= INT32_MAX && valueLong_ >= INT32_MIN) {
+				valueInt_ = valueLong_;
+			}
 			break;
 		case 't':
 		case 'f':
 			valueBoolean_ = rawToBoolean(valueRaw_);
 			break;
 		default:
-			// NULL
 			break;
 	}
 }
@@ -107,7 +108,6 @@ JsonItem &JsonItem::operator=(const JsonItem &other)
 		valueArray_ = other.ValueArray();
 		valueJson_ = new JsonObject(other.ValueJson());
 	}
-
 	return *this;
 }
 
@@ -172,7 +172,6 @@ JsonObject JsonItem::ValueJson() const
 	if (valueJson_ != nullptr) {
 		json = *valueJson_;
 	}
-
 	return json;
 }
 
@@ -270,7 +269,6 @@ std::vector<JsonItem> JsonItem::ParseArray_(const std::string &valueRaw)
 	for (const auto &raw : arrayRaw) {
 		array.emplace_back(JsonItem(raw));
 	}
-
 	return array;
 }
 
@@ -278,7 +276,7 @@ JsonObject::JsonObject() : jsonMap_(), jsonOrder_() { }
 
 JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 {
-	const auto getEscapeChar = [](char ch) -> char {
+	static const auto getEscapeChar = [](char ch) -> char {
 		char ret = ch;
 		switch (ch) {
 			case '\\':
@@ -323,7 +321,7 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 	size_t pos = 0;
 	bool atJson = false, atKey = false, atValue = false, atString = false, atItemJson = false, atArray = false;
 	int bracesNum = 0, bracketsNum = 0;
-	std::string key = "", value = "";
+	std::string key{}, value{};
 	while (pos < jsonText.size()) {
 		switch (jsonText[pos]) {
 			case '{':
@@ -504,7 +502,8 @@ JsonObject::JsonObject(const std::string &jsonText) : jsonMap_(), jsonOrder_()
 		if (!atKey && !atValue && !key.empty() && !value.empty()) {
 			jsonMap_[key] = JsonItem(value);
 			jsonOrder_.emplace_back(key);
-			key = "", value = "";
+			key.clear();
+			value.clear();
 		}
 		pos++;
 	}
@@ -539,7 +538,6 @@ JsonObject &JsonObject::operator=(const JsonObject &other)
 		jsonMap_ = other._Get_JsonMap();
 		jsonOrder_ = other._Get_JsonOrder();
 	}
-
 	return *this;
 }
 
@@ -555,7 +553,6 @@ JsonObject &JsonObject::operator+=(const JsonObject &other)
 			jsonMap_[key] = otherJsonMap.at(key);
 		}
 	}
-
 	return *this;
 }
 
@@ -631,7 +628,6 @@ std::vector<std::string> JsonObject::GetArrayRaw(const std::string &key) const
 	for (const auto &item : array) {
 		arrayRaw.emplace_back(item.ValueRaw());
 	}
-
 	return arrayRaw;
 }
 
@@ -642,7 +638,6 @@ std::vector<std::string> JsonObject::GetArrayString(const std::string &key) cons
 	for (const auto &item : array) {
 		arrayString.emplace_back(item.ValueString());
 	}
-
 	return arrayString;
 }
 
@@ -653,7 +648,6 @@ std::vector<int> JsonObject::GetArrayInt(const std::string &key) const
 	for (const auto &item : array) {
 		arrayInt.emplace_back(item.ValueInt());
 	}
-
 	return arrayInt;
 }
 
@@ -664,7 +658,6 @@ std::vector<int64_t> JsonObject::GetArrayLong(const std::string &key) const
 	for (const auto &item : array) {
 		arrayLong.emplace_back(item.ValueLong());
 	}
-
 	return arrayLong;
 }
 
@@ -675,7 +668,6 @@ std::vector<double> JsonObject::GetArrayDouble(const std::string &key) const
 	for (const auto &item : array) {
 		arrayDouble.emplace_back(item.ValueDouble());
 	}
-
 	return arrayDouble;
 }
 
@@ -686,7 +678,6 @@ std::vector<bool> JsonObject::GetArrayBoolean(const std::string &key) const
 	for (const auto &item : array) {
 		arrayBoolean.emplace_back(item.ValueBoolean());
 	}
-
 	return arrayBoolean;
 }
 
@@ -697,7 +688,6 @@ std::vector<JsonObject> JsonObject::GetArrayJson(const std::string &key) const
 	for (const auto &item : array) {
 		arrayJson.emplace_back(item.ValueJson());
 	}
-
 	return arrayJson;
 }
 
@@ -713,41 +703,36 @@ void JsonObject::PutValueRaw(const std::string &key, const std::string &value)
 
 void JsonObject::PutValueString(const std::string &key, const std::string &value)
 {
-	std::string valueRaw = "\"" + value + "\"";
-	PutValue_(key, JsonItem(valueRaw));
+	PutValue_(key, JsonItem("\"" + value + "\""));
 }
 
 void JsonObject::PutValueInt(const std::string &key, const int &value)
 {
-	std::string valueRaw = std::to_string(value);
-	PutValue_(key, JsonItem(valueRaw));
+	PutValue_(key, JsonItem(std::to_string(value)));
 }
 
 void JsonObject::PutValueLong(const std::string &key, const int64_t &value)
 {
-	std::string valueRaw = std::to_string(value);
-	PutValue_(key, JsonItem(valueRaw));
+	PutValue_(key, JsonItem(std::to_string(value)));
 }
 
 void JsonObject::PutValueDouble(const std::string &key, const double &value)
 {
-	std::string valueRaw = std::to_string(value);
-	PutValue_(key, JsonItem(valueRaw));
+	PutValue_(key, JsonItem(std::to_string(value)));
 }
 
 void JsonObject::PutValueBoolean(const std::string &key, const bool &value)
 {
-	std::string valueRaw = "false";
 	if (value) {
-		valueRaw = "true";
+		PutValue_(key, JsonItem("true"));
+	} else {
+		PutValue_(key, JsonItem("false"));
 	}
-	PutValue_(key, JsonItem(valueRaw));
 }
 
 void JsonObject::PutValueJson(const std::string &key, const JsonObject &value)
 {
-	std::string valueRaw = value.PrintToString(false);
-	PutValue_(key, JsonItem(valueRaw));
+	PutValue_(key, JsonItem(value.PrintToString(false)));
 }
 
 void JsonObject::PutValueItem(const std::string &key, const JsonItem &value)
@@ -762,7 +747,7 @@ void JsonObject::PutValueNull(const std::string &key)
 
 void JsonObject::PutArrayRaw(const std::string &key, const std::vector<std::string> &array)
 {
-	std::string valueRaw = "[";
+	std::string valueRaw("[");
 	for (const auto &value : array) {
 		valueRaw += value + ",";
 	}
@@ -772,7 +757,7 @@ void JsonObject::PutArrayRaw(const std::string &key, const std::vector<std::stri
 
 void JsonObject::PutArrayString(const std::string &key, const std::vector<std::string> &array)
 {
-	std::string valueRaw = "[";
+	std::string valueRaw("[");
 	for (const auto &value : array) {
 		valueRaw += "\"" + value + "\",";
 	}
@@ -782,7 +767,7 @@ void JsonObject::PutArrayString(const std::string &key, const std::vector<std::s
 
 void JsonObject::PutArrayInt(const std::string &key, const std::vector<int> &array)
 {
-	std::string valueRaw = "[";
+	std::string valueRaw("[");
 	for (const auto &value : array) {
 		valueRaw += std::to_string(value) + ",";
 	}
@@ -792,7 +777,7 @@ void JsonObject::PutArrayInt(const std::string &key, const std::vector<int> &arr
 
 void JsonObject::PutArrayLong(const std::string &key, const std::vector<int64_t> &array)
 {
-	std::string valueRaw = "[";
+	std::string valueRaw("[");
 	for (const auto &value : array) {
 		valueRaw += std::to_string(value) + ",";
 	}
@@ -802,7 +787,7 @@ void JsonObject::PutArrayLong(const std::string &key, const std::vector<int64_t>
 
 void JsonObject::PutArrayDouble(const std::string &key, const std::vector<double> &array)
 {
-	std::string valueRaw = "[";
+	std::string valueRaw("[");
 	for (const auto &value : array) {
 		valueRaw += std::to_string(value) + ",";
 	}
@@ -812,7 +797,7 @@ void JsonObject::PutArrayDouble(const std::string &key, const std::vector<double
 
 void JsonObject::PutArrayBoolean(const std::string &key, const std::vector<bool> &array)
 {
-	std::string valueRaw = "[";
+	std::string valueRaw("[");
 	for (const auto &value : array) {
 		if (value) {
 			valueRaw += "true,";
@@ -826,7 +811,7 @@ void JsonObject::PutArrayBoolean(const std::string &key, const std::vector<bool>
 
 void JsonObject::PutArrayJson(const std::string &key, const std::vector<JsonObject> &array)
 {
-	std::string valueRaw = "[";
+	std::string valueRaw("[");
 	for (const JsonObject &value : array) {
 		valueRaw += value.PrintToString(false) + ",";
 	}
@@ -836,7 +821,7 @@ void JsonObject::PutArrayJson(const std::string &key, const std::vector<JsonObje
 
 void JsonObject::PutArrayItem(const std::string &key, const std::vector<JsonItem> &array)
 {
-	std::string valueRaw = "[";
+	std::string valueRaw("[");
 	for (const auto &value : array) {
 		valueRaw += value.ValueRaw() + ",";
 	}
@@ -853,7 +838,7 @@ void JsonObject::Clear()
 void JsonObject::Remove(const std::string &key)
 {
 	{
-		const auto &iter = jsonMap_.find(key);
+		auto iter = jsonMap_.find(key);
 		if (iter != jsonMap_.end()) {
 			jsonMap_.erase(iter);
 		} else {
@@ -861,7 +846,7 @@ void JsonObject::Remove(const std::string &key)
 		}
 	}
 	{
-		const auto &iter = std::find(jsonOrder_.begin(), jsonOrder_.end(), key);
+		auto iter = std::find(jsonOrder_.begin(), jsonOrder_.end(), key);
 		if (iter != jsonOrder_.end()) {
 			jsonOrder_.erase(iter);
 		}
@@ -880,11 +865,10 @@ size_t JsonObject::Size() const
 
 size_t JsonObject::GetKeyPos(const std::string &key) const
 {
-	const auto &iter = std::find(jsonOrder_.begin(), jsonOrder_.end(), key);
+	auto iter = std::find(jsonOrder_.begin(), jsonOrder_.end(), key);
 	if (iter == jsonOrder_.end()) {
 		throw JsonExcept("Failed to find JsonKey.");
 	}
-
 	return static_cast<size_t>(iter - jsonOrder_.begin());
 }
 
@@ -893,13 +877,12 @@ JsonItem JsonObject::GetItemAtPos(size_t pos) const
 	if (pos >= jsonMap_.size()) {
 		throw JsonExcept("Position out of range.");
 	}
-
 	return jsonMap_.at(jsonOrder_[pos]);
 }
 
 std::string JsonObject::PrintToString(bool format) const
 {
-	std::string jsonText = "{";
+	std::string jsonText("{");
 	if (format) {
 		for (const std::string &key : jsonOrder_) {
 			jsonText += "\n  \"" + key + "\": " + GetValue_(key).ValueRaw() + ",";
@@ -911,7 +894,6 @@ std::string JsonObject::PrintToString(bool format) const
 		}
 		jsonText = jsonText.substr(0, jsonText.rfind(",")) + "}";
 	}
-	
 	return jsonText;
 }
 
@@ -921,7 +903,6 @@ JsonItem JsonObject::GetValue_(const std::string &key) const
 	if (iter == jsonMap_.end()) {
 		throw JsonExcept("Failed to get JsonValue.");
 	}
-
 	return iter->second;
 }
 
