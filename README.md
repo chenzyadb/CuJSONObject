@@ -1,4 +1,4 @@
-# Simple-JsonObject
+# CuJSONObject
 A very simple JSON parser. 
 
 ## Features
