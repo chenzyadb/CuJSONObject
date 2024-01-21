@@ -477,18 +477,16 @@ CU::JSONArray::JSONArray(const std::vector<JSONObject> &list) : data_()
 
 CU::JSONArray::JSONArray(const JSONArray &other) : data_()
 {
-	if (std::addressof(other) == this) {
-		return;
+	if (std::addressof(other) != this) {
+		data_ = other.data();
 	}
-	data_ = other.data();
 }
 
 CU::JSONArray::JSONArray(JSONArray &&other) noexcept : data_()
 {
-	if (std::addressof(other) == this) {
-		return;
+	if (std::addressof(other) != this) {
+		data_ = other.data();
 	}
-	data_ = other.data();
 }
 
 CU::JSONArray::~JSONArray() { }
@@ -625,6 +623,9 @@ std::vector<CU::JSONObject> CU::JSONArray::toListObject() const
 
 CU::JSONItem CU::JSONArray::at(const size_t &pos) const
 {
+	if (pos >= data_.size()) {
+		throw JSONExcept("Position out of bound");
+	}
 	return data_.at(pos);
 }
 
@@ -643,13 +644,11 @@ void CU::JSONArray::add(const JSONItem &item)
 
 void CU::JSONArray::remove(const JSONItem &item)
 {
-	if (data_.begin() == data_.end()) {
-		return;
-	}
 	auto iter = std::find(data_.begin(), data_.end(), item);
-	if (iter != data_.end()) {
-		data_.erase(iter);
+	if (iter == data_.end()) {
+		throw JSONExcept("Item not found");
 	}
+	data_.erase(iter);
 }
 
 void CU::JSONArray::resize(const size_t &new_size)
@@ -1012,7 +1011,11 @@ bool CU::JSONObject::operator<(const JSONObject &other) const
 
 CU::JSONItem CU::JSONObject::at(const std::string &key) const
 {
-	return data_.at(key);
+	auto iter = data_.find(key);
+	if (iter == data_.end()) {
+		throw JSONExcept("Key not found");
+	}
+	return iter->second;
 }
 
 void CU::JSONObject::add(const std::string &key, const JSONItem &value)
@@ -1026,10 +1029,11 @@ void CU::JSONObject::add(const std::string &key, const JSONItem &value)
 void CU::JSONObject::remove(const std::string &key)
 {
 	auto iter = std::find(order_.begin(), order_.end(), key);
-	if (iter != order_.end()) {
-		order_.erase(iter);
-		data_.erase(key);
+	if (iter == order_.end()) {
+		throw JSONExcept("Key not found");
 	}
+	order_.erase(iter);
+	data_.erase(*iter);
 }
 
 void CU::JSONObject::clear()
