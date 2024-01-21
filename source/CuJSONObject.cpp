@@ -1009,6 +1009,11 @@ bool CU::JSONObject::operator<(const JSONObject &other) const
 	return (data_ < other.data());
 }
 
+bool CU::JSONObject::contains(const std::string &key) const
+{
+	return (data_.count(key) == 1);
+}
+
 CU::JSONItem CU::JSONObject::at(const std::string &key) const
 {
 	auto iter = data_.find(key);

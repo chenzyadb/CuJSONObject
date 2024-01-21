@@ -330,6 +330,7 @@ namespace CU
 			bool operator>(const JSONObject &other) const;
 			bool operator<(const JSONObject &other) const;
 			
+			bool contains(const std::string &key) const;
 			JSONItem at(const std::string &key) const;
 			void add(const std::string &key, const JSONItem &value);
 			void remove(const std::string &key);

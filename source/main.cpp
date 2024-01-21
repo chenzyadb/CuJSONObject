@@ -42,7 +42,7 @@ int main()
         JSONObject object(
             "{\"boolean\": true, \"int\": 12345678, \"long\": 12345678987654321, \"double\": 3.141592, \n"
             "\"string\": \"Hello, World!\", \"array\": [true, 123, 123321123321123321, 5.56, \"test\", [], {}], \n"
-            "\"object\": {\"val\": {}}}"
+            "\"object\": {\"val\": {}}, \"null\": null}"
         );
         std::cout << object.toFormatedString() << std::endl;
         std::cout << object["boolean"].toBoolean() << std::endl;
