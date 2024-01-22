@@ -1,5 +1,79 @@
 #include "CuJSONObject.h"
 
+CU::JSONItem::_Init_Val CU::JSONItem::_To_Init_Val(const std::string &JSONRaw)
+{
+	static const auto createInitVal = [](const ItemType &type, const ItemValue &value) -> _Init_Val {
+		_Init_Val initVal{};
+		initVal.type = type;
+		initVal.value = value;
+		return initVal;
+	};
+
+	switch (JSONRaw.front()) {
+		case '{':
+			if (JSONRaw.back() == '}') {
+				return createInitVal(ItemType::OBJECT, new JSONObject(JSONRaw));
+			}
+			break;
+		case '[':
+			if (JSONRaw.back() == ']') {
+				return createInitVal(ItemType::ARRAY, new JSONArray(JSONRaw));
+			}
+			break;
+		case '\"':
+			if (JSONRaw.back() == '\"') {
+				return createInitVal(ItemType::STRING, JSONRaw.substr(1, JSONRaw.size() - 2));
+			}
+			break;
+		case '-':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			{
+				auto num = atof(JSONRaw.c_str());
+				if (num != 0) {
+					if (num == static_cast<int64_t>(num)) {
+						if (num > static_cast<double>(INT_MAX) || num < static_cast<double>(INT_MIN)) {
+							return createInitVal(ItemType::LONG, static_cast<int64_t>(num));
+						} else {
+							return createInitVal(ItemType::INTEGER, static_cast<int>(num));
+						}
+					} else {
+						return createInitVal(ItemType::DOUBLE, num);
+					}
+				} else if (JSONRaw == "0") {
+					return createInitVal(ItemType::INTEGER, 0);
+				} else if (JSONRaw == "0.0") {
+					return createInitVal(ItemType::DOUBLE, 0.0);
+				}
+			}
+			break;
+		case 't':
+		case 'f':
+			if (JSONRaw == "true") {
+				return createInitVal(ItemType::BOOLEAN, true);
+			} else if (JSONRaw == "false") {
+				return createInitVal(ItemType::BOOLEAN, false);
+			}
+			break;
+		case 'n':
+			if (JSONRaw == "null") {
+				return createInitVal(ItemType::ITEM_NULL, ItemNull());
+			}
+			break;
+		default:
+			break;
+	}
+	throw JSONExcept("Invalid JSONItem");
+}
+
 CU::JSONItem::JSONItem() : 
 	type_(ItemType::ITEM_NULL), 
 	value_(ItemNull()) 
@@ -81,6 +155,11 @@ CU::JSONItem::JSONItem(JSONItem &&other) noexcept :
 	}
 }
 
+CU::JSONItem::JSONItem(_Init_Val &&initVal) noexcept :
+	type_(initVal.type),
+	value_(initVal.value)
+{ }
+
 CU::JSONItem::~JSONItem()
 {
 	clear();
@@ -152,6 +231,17 @@ CU::ItemValue CU::JSONItem::value() const
 	return value_;
 }
 
+void CU::JSONItem::clear()
+{
+	if (type_ == ItemType::ARRAY) {
+		delete std::get<JSONArray*>(value_);
+	} else if (type_ == ItemType::OBJECT) {
+		delete std::get<JSONObject*>(value_);
+	}
+	type_ = ItemType::ITEM_NULL;
+	value_ = ItemNull();
+}
+
 bool CU::JSONItem::toBoolean() const
 {
 	if (type_ == ItemType::BOOLEAN) {
@@ -210,49 +300,84 @@ CU::JSONObject CU::JSONItem::toObject() const
 
 std::string CU::JSONItem::_To_JSONRaw() const
 {
-	std::string jsonRaw{};
+	static const auto stringToJSONRaw = [](const std::string &str) -> std::string {
+		std::string JSONRaw("\"");
+		for (const auto &ch : str) {
+			switch (ch) {
+				case '\\':
+					JSONRaw += "\\\\";
+					break;
+				case '\"':
+					JSONRaw += "\\\"";
+					break;
+				case '\'':
+					JSONRaw += "\\\'";
+					break;
+				case '\n':
+					JSONRaw += "\\n";
+					break;
+				case '\t':
+					JSONRaw += "\\t";
+					break;
+				case '\r':
+					JSONRaw += "\\r";
+					break;
+				case '\f':
+					JSONRaw += "\\f";
+					break;
+				case '\a':
+					JSONRaw += "\\a";
+					break;
+				case '\b':
+					JSONRaw += "\\b";
+					break;
+				case '\v':
+					JSONRaw += "\\v";
+					break;
+				case '/':
+					JSONRaw += "\\/";
+					break;
+				default:
+					JSONRaw += ch;
+					break;
+			}
+		}
+		JSONRaw += '\"';
+		return JSONRaw;
+	};
+
+	std::string JSONRaw{};
 	switch (type_) {
 		case ItemType::ITEM_NULL:
-			jsonRaw = "null";
+			JSONRaw = "null";
 			break;
 		case ItemType::BOOLEAN:
 			if (std::get<bool>(value_)) {
-				jsonRaw = "true";
+				JSONRaw = "true";
 			} else {
-				jsonRaw = "false";
+				JSONRaw = "false";
 			}
 			break;
 		case ItemType::INTEGER:
-			jsonRaw = std::to_string(std::get<int>(value_));
+			JSONRaw = std::to_string(std::get<int>(value_));
 			break;
 		case ItemType::LONG:
-			jsonRaw = std::to_string(std::get<int64_t>(value_));
+			JSONRaw = std::to_string(std::get<int64_t>(value_));
 			break;
 		case ItemType::DOUBLE:
-			jsonRaw = std::to_string(std::get<double>(value_));
+			JSONRaw = std::to_string(std::get<double>(value_));
 			break;
 		case ItemType::STRING:
-			jsonRaw = _StringToJSONRaw(std::get<std::string>(value_));
+			JSONRaw = stringToJSONRaw(std::get<std::string>(value_));
 			break;
 		case ItemType::ARRAY:
-			jsonRaw = std::get<JSONArray*>(value_)->toString();
+			JSONRaw = std::get<JSONArray*>(value_)->toString();
 			break;
 		case ItemType::OBJECT:
-			jsonRaw = std::get<JSONObject*>(value_)->toString();
+			JSONRaw = std::get<JSONObject*>(value_)->toString();
 			break;
 	}
-	return jsonRaw;
-}
-
-void CU::JSONItem::clear()
-{
-	if (type_ == ItemType::ARRAY) {
-		delete std::get<JSONArray*>(value_);
-	} else if (type_ == ItemType::OBJECT) {
-		delete std::get<JSONObject*>(value_);
-	}
-	type_ = ItemType::ITEM_NULL;
-	value_ = ItemNull();
+	return JSONRaw;
 }
 
 CU::JSONArray::JSONArray() : data_() { }
@@ -398,24 +523,7 @@ CU::JSONArray::JSONArray(const std::string &JSONString) : data_()
 				break;
 		}
 		if ((idx == ArrayIdx::ITEM_FRONT || idx == ArrayIdx::NONE) && !content.empty()) {
-			ItemType type = _GetItemType(content);
-			if (type == ItemType::BOOLEAN) {
-				data_.emplace_back(content == "true");
-			} else if (type == ItemType::INTEGER) {
-				data_.emplace_back(std::stoi(content));
-			} else if (type == ItemType::LONG) {
-				data_.emplace_back(static_cast<int64_t>(std::stoll(content)));
-			} else if (type == ItemType::DOUBLE) {
-				data_.emplace_back(std::stod(content));
-			} else if (type == ItemType::STRING) {
-				data_.emplace_back(content.substr(1, content.size() - 2));
-			} else if (type == ItemType::ARRAY) {
-				data_.emplace_back(JSONArray(content));
-			} else if (type == ItemType::OBJECT) {
-				data_.emplace_back(JSONObject(content));
-			} else {
-				data_.emplace_back(JSONItem());
-			}
+			data_.emplace_back(JSONItem::_To_Init_Val(content));
 			content.clear();
 		}
 		pos++;
@@ -881,24 +989,7 @@ CU::JSONObject::JSONObject(const std::string &JSONString) : data_(), order_()
 		}
 		if ((idx == ObjectIdx::KEY_FRONT || idx == ObjectIdx::NONE) && !key.empty() && !value.empty()) {
 			order_.emplace_back(key);
-			ItemType type = _GetItemType(value);
-			if (type == ItemType::BOOLEAN) {
-				data_[key] = (value == "true");
-			} else if (type == ItemType::INTEGER) {
-				data_[key] = std::stoi(value);
-			} else if (type == ItemType::LONG) {
-				data_[key] =  static_cast<int64_t>(std::stoll(value));
-			} else if (type == ItemType::DOUBLE) {
-				data_[key] = std::stod(value);
-			} else if (type == ItemType::STRING) {
-				data_[key] = value.substr(1, value.size() - 2);
-			} else if (type == ItemType::ARRAY) {
-				data_[key] = JSONArray(value);
-			} else if (type == ItemType::OBJECT) {
-				data_[key] = JSONObject(value);
-			} else {
-				data_[key] = JSONItem();
-			}
+			data_.emplace(key, JSONItem::_To_Init_Val(value));
 			key.clear();
 			value.clear();
 		}

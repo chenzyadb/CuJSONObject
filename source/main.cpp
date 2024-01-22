@@ -35,6 +35,12 @@ int main()
         std::cout << array.toString() << std::endl;
         array = JSONArray("[[[]], [[[], []], [[], []]], [[[], [], []], [[], [], []], [[], [], []]]]");
         std::cout << array.toString() << std::endl;
+
+        array = JSONArray("[1, 2, 3, \"text\", null]");
+        std::cout << array.toString() << std::endl;
+        array.remove("text");
+        array.remove(2);
+        std::cout << array.toString() << std::endl;
     }
 
     // object test.
