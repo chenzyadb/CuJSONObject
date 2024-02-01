@@ -211,16 +211,6 @@ bool CU::JSONItem::operator!=(const JSONItem &other) const
 	return (value_ != other.value());
 }
 
-bool CU::JSONItem::operator>(const JSONItem &other) const
-{
-	return (value_ > other.value());
-}
-
-bool CU::JSONItem::operator<(const JSONItem &other) const
-{
-	return (value_ < other.value());
-}
-
 CU::ItemType CU::JSONItem::type() const
 {
 	return type_;
@@ -240,6 +230,11 @@ void CU::JSONItem::clear()
 	}
 	type_ = ItemType::ITEM_NULL;
 	value_ = ItemNull();
+}
+
+size_t CU::JSONItem::size() const
+{
+	return sizeof(*this);
 }
 
 bool CU::JSONItem::toBoolean() const
@@ -298,7 +293,7 @@ CU::JSONObject CU::JSONItem::toObject() const
 	return {};
 }
 
-std::string CU::JSONItem::_To_JSONRaw() const
+std::string CU::JSONItem::toRaw() const
 {
 	static const auto stringToJSONRaw = [](const std::string &str) -> std::string {
 		std::string JSONRaw("\"");
@@ -656,16 +651,6 @@ bool CU::JSONArray::operator!=(const JSONArray &other) const
 	return (data_ != other.data());
 }
 
-bool CU::JSONArray::operator>(const JSONArray &other) const
-{
-	return (data_ > other.data());
-}
-
-bool CU::JSONArray::operator<(const JSONArray &other) const
-{
-	return (data_ < other.data());
-}
-
 std::vector<bool> CU::JSONArray::toListBoolean() const
 {
 	std::vector<bool> listBoolean{};
@@ -790,14 +775,14 @@ std::string CU::JSONArray::toString() const
 		std::string JSONText("[]");
 		return JSONText;
 	} else if ((data_.begin() + 1) == data_.end()) {
-		auto JSONText = std::string("[") + data_.front()._To_JSONRaw() + "]";
+		auto JSONText = std::string("[") + data_.front().toRaw() + "]";
 		return JSONText;
 	}
 	std::string JSONText("[");
 	for (auto iter = data_.begin(); iter < (data_.end() - 1); iter++) {
-		JSONText += iter->_To_JSONRaw() + ",";
+		JSONText += iter->toRaw() + ",";
 	}
-	JSONText += data_.back()._To_JSONRaw() + "]";
+	JSONText += data_.back().toRaw() + "]";
 	return JSONText;
 }
 
@@ -856,6 +841,8 @@ CU::JSONObject::JSONObject(const std::string &JSONString) : data_(), order_()
 					value += ch;
 				} else if (idx == ObjectIdx::VALUE_STRING || idx == ObjectIdx::VALUE_ARRAY) {
 					value += ch;
+				} else if (idx == ObjectIdx::KEY_CONTENT) {
+					key += ch;
 				} else {
 					throw JSONExcept("Invalid JSONObject Structure");
 				}
@@ -877,6 +864,8 @@ CU::JSONObject::JSONObject(const std::string &JSONString) : data_(), order_()
 					idx = ObjectIdx::NONE;
 				} else if (idx == ObjectIdx::VALUE_STRING || idx == ObjectIdx::VALUE_ARRAY) {
 					value += ch;
+				} else if (idx == ObjectIdx::KEY_CONTENT) {
+					key += ch;
 				} else {
 					throw JSONExcept("Invalid JSONObject Structure");
 				}
@@ -903,6 +892,8 @@ CU::JSONObject::JSONObject(const std::string &JSONString) : data_(), order_()
 					idx = ObjectIdx::VALUE_FRONT;
 				} else if (idx == ObjectIdx::VALUE_STRING || idx == ObjectIdx::VALUE_ARRAY || idx == ObjectIdx::VALUE_OBJECT) {
 					value += ch;
+				} else if (idx == ObjectIdx::KEY_CONTENT) {
+					key += ch;
 				} else {
 					throw JSONExcept("Invalid JSONObject Structure");
 				}
@@ -912,6 +903,8 @@ CU::JSONObject::JSONObject(const std::string &JSONString) : data_(), order_()
 					idx = ObjectIdx::KEY_FRONT;
 				} else if (idx == ObjectIdx::VALUE_STRING || idx == ObjectIdx::VALUE_ARRAY || idx == ObjectIdx::VALUE_OBJECT) {
 					value += ch;
+				} else if (idx == ObjectIdx::KEY_CONTENT) {
+					key += ch;
 				} else {
 					throw JSONExcept("Invalid JSONObject Structure");
 				}
@@ -926,6 +919,8 @@ CU::JSONObject::JSONObject(const std::string &JSONString) : data_(), order_()
 					value += ch;
 				} else if (idx == ObjectIdx::VALUE_STRING || idx == ObjectIdx::VALUE_OBJECT) {
 					value += ch;
+				} else if (idx == ObjectIdx::KEY_CONTENT) {
+					key += ch;
 				} else {
 					throw JSONExcept("Invalid JSONObject Structure");
 				}
@@ -943,6 +938,8 @@ CU::JSONObject::JSONObject(const std::string &JSONString) : data_(), order_()
 					}
 				} else if (idx == ObjectIdx::VALUE_STRING || idx == ObjectIdx::VALUE_OBJECT) {
 					value += ch;
+				} else if (idx == ObjectIdx::KEY_CONTENT) {
+					key += ch;
 				} else {
 					throw JSONExcept("Invalid JSONObject Structure");
 				}
@@ -951,7 +948,7 @@ CU::JSONObject::JSONObject(const std::string &JSONString) : data_(), order_()
 				if (idx == ObjectIdx::VALUE_STRING || idx == ObjectIdx::VALUE_ARRAY || idx == ObjectIdx::VALUE_OBJECT) {
 					value += ch;
 				} else if (idx == ObjectIdx::KEY_CONTENT) {
-					throw JSONExcept("Invalid JSONObject Structure");
+					key += ch;
 				}
 				break;
 			case '\n':
@@ -963,7 +960,10 @@ CU::JSONObject::JSONObject(const std::string &JSONString) : data_(), order_()
 			case '\v':
 				break;
 			case '\\':
-				if (idx == ObjectIdx::VALUE_STRING) {
+				if (idx == ObjectIdx::KEY_CONTENT) {
+					pos++;
+					key += _GetEscapeChar(JSONString.at(pos));
+				} else if (idx == ObjectIdx::VALUE_STRING) {
 					pos++;
 					value += _GetEscapeChar(JSONString.at(pos));
 				} else if (idx == ObjectIdx::VALUE_ARRAY || idx == ObjectIdx::VALUE_OBJECT) {
@@ -1000,7 +1000,7 @@ CU::JSONObject::JSONObject(const std::string &JSONString) : data_(), order_()
 	}
 }
 
-CU::JSONObject::JSONObject(const std::map<std::string, JSONItem> &data) : data_(), order_()
+CU::JSONObject::JSONObject(const std::unordered_map<std::string, JSONItem> &data) : data_(), order_()
 {
 	for (auto iter = data.begin(); iter != data.end(); iter++) {
 		order_.emplace_back(iter->first);
@@ -1090,16 +1090,6 @@ bool CU::JSONObject::operator!=(const JSONObject &other) const
 	return (data_ != other.data() || order_ != other.order());
 }
 
-bool CU::JSONObject::operator>(const JSONObject &other) const
-{
-	return (data_ > other.data());
-}
-
-bool CU::JSONObject::operator<(const JSONObject &other) const
-{
-	return (data_ < other.data());
-}
-
 bool CU::JSONObject::contains(const std::string &key) const
 {
 	return (data_.count(key) == 1);
@@ -1148,7 +1138,7 @@ bool CU::JSONObject::empty() const
 	return (data_.begin() == data_.end());
 }
 
-std::map<std::string, CU::JSONItem> CU::JSONObject::data() const
+std::unordered_map<std::string, CU::JSONItem> CU::JSONObject::data() const
 {
 	return data_;
 }
@@ -1165,16 +1155,16 @@ std::string CU::JSONObject::toString() const
 		return JSONString;
 	} else if ((order_.begin() + 1) == order_.end()) {
 		std::string JSONString("{");
-		JSONString += std::string("\"") + order_.front() + "\":" + data_.at(order_.front())._To_JSONRaw() + "}";
+		JSONString += std::string("\"") + order_.front() + "\":" + data_.at(order_.front()).toRaw() + "}";
 		return JSONString;
 	}
 	std::string JSONString("{");
 	for (auto iter = order_.begin(); iter < (order_.end() - 1); iter++) {
 		const auto &key = *iter;
-		auto valueRaw = data_.at(key)._To_JSONRaw();
+		auto valueRaw = data_.at(key).toRaw();
 		JSONString += std::string("\"") + key + "\":" + valueRaw + ",";
 	}
-	JSONString += std::string("\"") + order_.back() + "\":" + data_.at(order_.back())._To_JSONRaw() + "}";
+	JSONString += std::string("\"") + order_.back() + "\":" + data_.at(order_.back()).toRaw() + "}";
 	return JSONString;
 }
 
@@ -1185,15 +1175,15 @@ std::string CU::JSONObject::toFormatedString() const
 		return JSONString;
 	} else if ((order_.begin() + 1) == order_.end()) {
 		std::string JSONString("{\n");
-		JSONString += std::string("  \"") + order_.front() + "\": " + data_.at(order_.front())._To_JSONRaw() + "\n}";
+		JSONString += std::string("  \"") + order_.front() + "\": " + data_.at(order_.front()).toRaw() + "\n}";
 		return JSONString;
 	}
 	std::string JSONString("{\n");
 	for (auto iter = order_.begin(); iter < (order_.end() - 1); iter++) {
 		const auto &key = *iter;
-		auto valueRaw = data_.at(key)._To_JSONRaw();
+		auto valueRaw = data_.at(key).toRaw();
 		JSONString += std::string("  \"") + key + "\": " + valueRaw + ",\n";
 	}
-	JSONString += std::string("  \"") + order_.back() + "\": " + data_.at(order_.back())._To_JSONRaw() + "\n}";
+	JSONString += std::string("  \"") + order_.back() + "\": " + data_.at(order_.back()).toRaw() + "\n}";
 	return JSONString;
 }

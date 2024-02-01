@@ -4,13 +4,14 @@
 #ifndef _CU_JSONOBJECT_
 #define _CU_JSONOBJECT_
 
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <string>
 #include <variant>
 #include <memory>
 #include <exception>
 #include <algorithm>
+#include <functional>
 #include <cstdlib>
 #include <cstdint>
 #include <climits>
@@ -110,12 +111,11 @@ namespace CU
 			JSONItem &operator=(const JSONItem &other);
 			bool operator==(const JSONItem &other) const;
 			bool operator!=(const JSONItem &other) const;
-			bool operator>(const JSONItem &other) const;
-			bool operator<(const JSONItem &other) const;
 
 			ItemType type() const;
 			ItemValue value() const;
 			void clear();
+			size_t size() const;
 
 			bool toBoolean() const;
 			int toInt() const;
@@ -124,7 +124,7 @@ namespace CU
 			std::string toString() const;
 			JSONArray toArray() const;
 			JSONObject toObject() const;
-			std::string _To_JSONRaw() const;
+			std::string toRaw() const;
 			
 		private:
 			ItemType type_;
@@ -161,8 +161,6 @@ namespace CU
 			JSONArray operator+(const JSONArray &other) const;
 			bool operator==(const JSONArray &other) const;
 			bool operator!=(const JSONArray &other) const;
-			bool operator>(const JSONArray &other) const;
-			bool operator<(const JSONArray &other) const;
 
 			std::vector<bool> toListBoolean() const;
 			std::vector<int> toListInt() const;
@@ -199,7 +197,7 @@ namespace CU
 		public:
 			JSONObject();
 			JSONObject(const std::string &JSONString);
-			JSONObject(const std::map<std::string, JSONItem> &data);
+			JSONObject(const std::unordered_map<std::string, JSONItem> &data);
 			JSONObject(const JSONObject &other);
 			JSONObject(JSONObject &&other) noexcept;
 			~JSONObject();
@@ -211,8 +209,6 @@ namespace CU
 			JSONObject operator+(const JSONObject &other) const;
 			bool operator==(const JSONObject &other) const;
 			bool operator!=(const JSONObject &other) const;
-			bool operator>(const JSONObject &other) const;
-			bool operator<(const JSONObject &other) const;
 			
 			bool contains(const std::string &key) const;
 			JSONItem at(const std::string &key) const;
@@ -221,14 +217,44 @@ namespace CU
 			void clear();
 			size_t size() const;
 			bool empty() const;
-			std::map<std::string, JSONItem> data() const;
+			std::unordered_map<std::string, JSONItem> data() const;
 			std::vector<std::string> order() const;
 			std::string toString() const;
 			std::string toFormatedString() const;
 
 		private:
-			std::map<std::string, JSONItem> data_;
+			std::unordered_map<std::string, JSONItem> data_;
 			std::vector<std::string> order_;
+	};
+}
+
+namespace std
+{
+	template <>
+	struct hash<CU::JSONItem>
+	{
+		size_t operator()(const CU::JSONItem &val) const
+		{
+			return reinterpret_cast<size_t>(std::addressof(val));
+		}
+	};
+
+	template <>
+	struct hash<CU::JSONArray>
+	{
+		size_t operator()(const CU::JSONArray &val) const
+		{
+			return reinterpret_cast<size_t>(std::addressof(val));
+		}
+	};
+
+	template <>
+	struct hash<CU::JSONObject>
+	{
+		size_t operator()(const CU::JSONObject &val) const
+		{
+			return reinterpret_cast<size_t>(std::addressof(val));
+		}
 	};
 }
 
