@@ -7,7 +7,7 @@ int main()
     // item test.
     {
         JSONItem item{};
-        std::cout << item.toString() << std::endl;
+        std::cout << item.toRaw() << std::endl;
         item = true;
         std::cout << item.toBoolean() << std::endl;
         item = INT_MAX;
@@ -52,6 +52,12 @@ int main()
         array.add(JSONArray());
         array.add(JSONObject());
         std::cout << array.toString() << std::endl;
+
+        array += JSONArray("[1, 2, 3, 4, 5, \"sodayo!\"]");
+        std::cout << array.toString() << std::endl;
+
+        auto merged_array = array + JSONArray("[[]]");
+        std::cout << merged_array.toString() << std::endl;
     }
 
     // object test.
@@ -72,6 +78,14 @@ int main()
 
         object["newVal"] = JSONObject("{\"newObj\": \"test\"}");
         std::cout << object.toFormatedString() << std::endl;
+
+        JSONObject object2("{\"newVal\": \"replaced\", \"23\": 456}");
+        auto object3 = object2 + object;
+        std::cout << object3.toFormatedString() << std::endl;
+
+        for (const auto &pair : object3.toPairs()) {
+            std::cout << "key: " << pair.key << " value: " << pair.value.toRaw() << std::endl;
+        }
     }
 
     // JSON PASS test.
@@ -141,6 +155,7 @@ int main()
         for (const auto &item : array) {
             std::cout << item.toRaw() << std::endl;
         }
+        std::cout << array[8].toObject().toFormatedString() << std::endl;
     }
 
     return 0;
